@@ -90,13 +90,15 @@ fields.
 
 **Run history**
 
-20
+agreement: 20/20 scored items  (bar: 18/20: PASS)
 
 **Package analysis**
 
-`pkg-03`. The run shows:
-my rubric: `accept`
-gold label: `accept`
+```
+pkg-03  clear-accept       accept  accept   yes
+```
+
+`pkg-03` is a `clear-accept` package and the run shows my verdict `accept` matched the gold label `accept` (`agree: yes`).
 
 **Check rationale**
 
