@@ -112,19 +112,35 @@ https://github.com/MFlowCode/MFC/issues/1518#issuecomment-6406052284
 
 **Problem Description**
 
-[In your own words, what is broken or missing?]
+Three different pieces of logic are repeated in multiple places in the code base. The duplicate logic presents a risk that if a change is made in one place, it could be missed or copied wrong in another which could lead to unintended bugs.
+
+The goal of this issue is to de-depulicate this logic and add unit tests to verify the existing behavior.
 
 **Expected Behavior**
 
-[What should happen?]
+1. One function `_status_div(step, shape, dmin, dmax) -> html.Div` exists for the function shape `html.Div (step {step} / · shape {raw.shape} / Br / min+value / max+value, same _YELLOW/_MUTED/_BLUE/_RED styles)` and it is called on lines 1971, 2120, 2470, 2626.
+2. `_log_transform(log: bool)` exists instead of the duplicate `_tf(arr)` logic returning the transform and the `cmin`/`cmax` pair. The 1e-300 floor is moved to a module constant `_LOG_FLOOR`
+3. Add `_mesh3_key(...) -> tuple` and use it on lines 350, 432, and 1890.
+4. Unit tests have been added to `test_viz.py` for `interactive.py` which verify the behavior changed in items 1-3.
 
 **Current Behavior**
 
-[What actually happens?]
+1. `html.Div (step {step} / · shape {raw.shape} / Br / min+value / max+value, same _YELLOW/_MUTED/_BLUE/_RED styles)` is duplicated on lines 1971, 2120, 2470, 2626.
+2. `_tf(arr)` is repeated on lines 379, 386, 1853, and 1861 in one of the formats below:
+```
+def _tf(arr):
+    return np.where(arr > 0, np.log10(np.maximum(arr, 1e-300)), np.nan)
+# else
+def _tf(arr):
+    return arr
+```
+The literal `1e-300` is hardcoded rather than stored as a constant.
+3. The logic `(step, var, mode, log, vmin_in, vmax_in, iso_min_frac, iso_max_frac, iso_n, vol_min_frac, vol_max_frac)` is duplicated at lines 350, 432, and 1890.
+4. No unit tests exist for `interactive.py`.
 
 **Affected Components**
 
-[Which parts of the codebase are involved?]
+The python toolchain file `toolchain/mfc/viz/interactive.py` which is one of the frontend UI modes used by viz.py to visualize models.
 
 **Toolkit**
 
