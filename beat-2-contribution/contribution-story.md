@@ -132,10 +132,10 @@ The python toolchain file `toolchain/mfc/viz/interactive.py` which is one of the
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: plan-check. Its diagnosis check reads my plan's account of the issue against the issue text and the code on master, so it was the tool that tested whether I had understood the issue correctly.
+- What it produced: It confirmed the facts my four answers rest on: four status Div copies, `_tf` at 379/386/1853/1861, the key built at 350 and 432, and no tests for `interactive.py`. Its last run also confirmed that the status Div has 7 children, not the 8 the issue says.
+- Difficulties: It accepted my first reading of the issue's third key site, where I only replaced the two tuples, so it did not catch that "use it at all three sites" meant the six `_update` calls too. I found that by rereading the issue myself. It also has no rule for refactor issues with no repro comment, so it checked my understanding against the issue body only.
+- What changed: I rewrote my plan to use the key at all three sites, and kept the issue's wording differences (7 children, the `_Mesh3Key` name) stated openly in my plan and plan comment instead of quietly matching the issue.
 
 ---
 
@@ -286,9 +286,9 @@ Follow-up (2026-10-31): that failure came from `zstd` not being installed (`/bin
 
 `toolchain/mfc/viz/interactive.py` (the Dash/Plotly interactive viewer) was built up by copy-paste, so three small pure-function pieces exist in several places with nothing keeping the copies in sync. There is no bug to fix; the risk is that a later edit changes one copy and misses the others. `interactive.py` also has no unit tests, so nothing would catch that.
 
-1. Status `html.Div` ("step N", "· shape ...", `Br`, min, max): the same 7-child block inside `_update` at four sites (ends of the 1D/2D, 3D patch, 3D full-figure and slice paths, ~L1971, 2120, 2470, 2626). Only the local names for min/max differ.
-2. Log/identity transform: `_tf(arr)` is defined as a closure twice in `_prefetch_3d_mesh` (~L379/386) and twice in `_update` (~L1853/1861), each beside an inline `cmin`/`cmax = log10(max(v, 1e-300))`. The `1e-300` floor is also inlined in the 2D path (~L302-304). The floor is a bare literal in five places.
-3. Mesh cache key: the 11-field tuple `(step, var, mode, log_bool, vmin_in, vmax_in, iso_min_frac, iso_max_frac, iso_n, vol_min_frac, vol_max_frac)` is built by hand in `_prefetch_3d_mesh` (L350) and `_get_cached_3d_mesh` (L432). These two must produce identical keys or prefetched meshes are never found. `_update` only passes the same values as positional arguments (~L1774, 1806, 1890, 2025, 2075, 2142); it does not build the tuple itself.
+1. Status `html.Div` ("step N", "· shape ...", `Br`, min, max): the same 7-child block inside `_update` at four sites: the 3D server-side (kaleido) render path (~L1971), the 3D patch path (~L2120), the 2D patch path (~L2470), and the full-figure path shared by all dimensions (~L2626). Only the local names for min/max differ.
+2. Log/identity transform: `_tf(arr)` is defined as a closure twice in `_prefetch_3d_mesh` (~L379/386) and twice in `_update` (~L1853/1861), each beside an inline `cmin`/`cmax = log10(max(v, 1e-300))`. The `1e-300` floor is also inlined in the 2D path (~L302-304). The floor is a bare literal nine times, in those three blocks.
+3. Mesh cache key: the 11-field tuple `(step, var, mode, log_bool, vmin_in, vmax_in, iso_min_frac, iso_max_frac, iso_n, vol_min_frac, vol_max_frac)` is built by hand in `_prefetch_3d_mesh` (L350) and `_get_cached_3d_mesh` (L432). These two must produce identical keys or prefetched meshes are never found. `_update` passes the same 11 values as positional arguments at six calls (~L1774, 1806, 1890, 2025, 2075, 2142), each listing them again in order, with the same `float(iso_min_frac or 0.2)`-style defaults; this is the third site the issue names (~L1890). The six calls differ only in `step` (the two prefetches use the next step, `_ns`), and none of the 11 values change after `log` is resolved (~L1736).
 4. No test in `toolchain/mfc/viz/test_viz.py` imports `interactive.py`.
 
 **Proposed Solution**
@@ -297,36 +297,35 @@ Extract each piece into one module-level helper in `interactive.py` and call it 
 
 - `_LOG_FLOOR = 1e-300`, a module constant that replaces every inline literal.
 - `_status_div(step, shape, dmin, dmax) -> html.Div`, called at the four sites.
-- `_log_transform(log, vmin, vmax) -> (tf, cmin, cmax)`. The issue writes `_log_transform(log)`, but it also asks for the cmin/cmax pair, which needs vmin/vmax, so I take them as arguments. It replaces the four `_tf` closures and their adjacent cmin/cmax lines; the 2D path (~L302-304) computes the same values, so it uses it too.
-- `_mesh3_key(step, var, mode, log, vmin_in, vmax_in, iso_min_frac, iso_max_frac, iso_n, vol_min_frac, vol_max_frac) -> tuple`, used where the key is built (L350, L432).
+- `_log_transform(log: bool, vmin: float, vmax: float) -> tuple`, returning `(tf, cmin, cmax)`. The issue writes `_log_transform(log)`, but it also asks for the cmin/cmax pair, which needs vmin/vmax, so I take them as arguments. It replaces the four `_tf` closures and their adjacent cmin/cmax lines; the 2D path (~L302-304) computes the same values, so it uses it too.
+- `_Mesh3Key`, a small `typing.NamedTuple` with the 11 fields `(step, var, mode, log_bool, vmin_in, vmax_in, iso_min_frac, iso_max_frac, iso_n, vol_min_frac, vol_max_frac)`. This is the issue's "small namedtuple" option, used at all three sites it names: `_update` builds one key per call (`mesh_key`), passes it to its four `_get_cached_3d_mesh` lookups and `mesh_key._replace(step=_ns)` to its two `_prefetch_3d_mesh` calls, and `_prefetch_3d_mesh(key, get_ad_fn)` and `_get_cached_3d_mesh(key)` take the key instead of 11 separate arguments (replacing the tuples at L350 and L432). The issue writes `_mesh3_key(...)`; a namedtuple class is named `_Mesh3Key` by Python convention. Because the key is built once, its `or 0.2`-style defaults are written once instead of six times; the issue does not ask for that, but it follows from passing one key and removes the same kind of drift.
 - Add `TestStatusDiv`, `TestLogTransform` and `TestMesh3Key` to `toolchain/mfc/viz/test_viz.py`, the first tests for `interactive.py`. Keep them short, since the file is at 917 lines and the soft limit is 1000.
 
 Not changing:
-- Signatures of `_prefetch_3d_mesh` and `_get_cached_3d_mesh`. The issue's third site (~L1890) is a call that passes arguments to one of these, not a tuple literal. Changing the signatures would touch every call in `_update` and is a public-signature change.
-- The repeated `float(iso_min_frac or 0.2)`-style defaults at the `_update` call sites.
-- Callback control flow, `_update`'s structure, `turbojpeg` handling, any other file, and any rendered output.
+- Callback control flow, `_update`'s structure (beyond the one added `mesh_key` line and the six simpler calls), `turbojpeg` handling, any other file, and any rendered output.
 
 **Implementation Plan**
 
-1. Branch `feature/viz-interactive-dedup` from the synced upstream `master` (done; it sits at `a03848a0`).
-2. Extract `_log_transform` and `_LOG_FLOOR`, using TDD. Each cycle is: write one test in `test_viz.py` (`TestLogTransform`), run it and confirm it fails for the expected reason (red), write the least code in `interactive.py` that makes it pass (green), tidy, and re-run the suite before the next test.
+1. Branch `feature/viz-interactive-dedup` from the synced upstream `master` (done; branched from `a03848a0`).
+2. Extract `_log_transform` and `_LOG_FLOOR`, using TDD (done; committed as `46ce57ab`). Each cycle is: write one test in `test_viz.py` (`TestLogTransform`), run it and confirm it fails for the expected reason (red), write the least code in `interactive.py` that makes it pass (green), tidy, and re-run the suite before the next test.
    1. Test: `log=True` returns the log10 transform (NaN for non-positive input) with `cmin`/`cmax`. Then add `_log_transform` to pass it.
    2. Test: `log=False` returns the input unchanged with `vmin`/`vmax`. Then add the identity branch.
    3. Test: `vmin=0` clamps to the `_LOG_FLOOR` constant. Then add `_LOG_FLOOR` and use it in the helper.
    4. Refactor: replace the four `_tf` closures, their adjacent cmin/cmax lines, and the 2D-path floor literals with `_log_transform`; the existing viz tests must still pass.
    5. Commit the helper, its call-site changes and its tests as one commit.
-3. Extract `_mesh3_key`, using TDD with the same cycle (`TestMesh3Key`).
-   1. Test: `test_prefetch_then_lookup` runs `_prefetch_3d_mesh` on a tiny fake 3D array, waits for it to finish, and checks that `_get_cached_3d_mesh` finds the result with the same 11 arguments, so both places that build the key are shown to agree. It passes before any change, so it pins current behavior.
-   2. Test: `_mesh3_key` returns the 11 fields in order. Then add `_mesh3_key` to pass it.
-   3. Test: changing any one field changes the key. It may already pass, in which case it stays as a guard.
-   4. Refactor: use `_mesh3_key` in `_prefetch_3d_mesh` and `_get_cached_3d_mesh`; the existing viz tests must still pass.
-   5. Commit the helper, its call-site changes and its tests as one commit.
+3. Replace the hand-built mesh cache key with a small namedtuple, `_Mesh3Key`, that `_update` builds once and passes to the cache functions, using TDD with the same cycle (`TestMesh3Key`). `_prefetch_3d_mesh` and `_get_cached_3d_mesh` take the key instead of 11 separate arguments.
+   1. Test: `_Mesh3Key` holds the 11 fields in order, readable by name (for example `key.iso_n`) and equal to the plain 11-value tuple, so it hashes and compares like the old keys. Then add `_Mesh3Key` as a `typing.NamedTuple` to pass it.
+   2. Test: changing any one field changes the key. It may already pass, in which case it stays as a guard.
+   3. Test: `_get_cached_3d_mesh(key)` returns the value stored under `key` in the cache. It fails while the function still takes 11 arguments. Then change it to take the key.
+   4. Test: `_prefetch_3d_mesh(key, get_ad_fn)`, run on a tiny fake 3D array in volume mode, stores its result under `key`, and the stored value range matches the key's `vol_min_frac` and `vol_max_frac`, which shows the fields are read in the right order. It fails while the function still takes 11 arguments. Then change it to take the key and unpack its fields at the top; the rest of the function is unchanged.
+   5. Refactor: in `_update`, build `mesh_key = _Mesh3Key(...)` once, right after `log` is resolved (~L1736; none of the 11 values change after that line), pass `mesh_key` to the four `_get_cached_3d_mesh` lookups, and pass `mesh_key._replace(step=_ns)` to the two `_prefetch_3d_mesh` calls. The existing viz tests must still pass. Cycles 3.3 and 3.4 break these calls until this step, so nothing is committed before it, and because these calls have no unit tests, step 5 checks them.
+   6. Commit `_Mesh3Key`, the two signature changes, the `_update` changes and the tests as one commit.
 4. Extract `_status_div`, using TDD with the same cycle (`TestStatusDiv`).
    1. Test: the children, text and colors for simple values. Then add `_status_div` to pass it.
    2. Test: numbers use the `.4g` format. Then change the formatting to pass it.
    3. Refactor: replace the four copies in `_update` with `_status_div`; the existing viz tests must still pass.
    4. Commit the helper, its call-site changes and its tests as one commit.
-5. Beyond the unit tests, which cannot reach the closures inside `_update` (nothing is committed for these): (a) run a throwaway script on `master` and on the branch that calls `_prefetch_jpeg` and `_prefetch_3d_mesh` with a fake data loader, in log and non-log mode, and compare `_jpeg_cache` and `_mesh3_cache`; (b) launch `./mfc.sh viz <fixture> --interactive` on the 2D and 3D fixtures before and after and compare the status line, color bar and log toggle. Save the output in `test_evidence.md`.
+5. Beyond the unit tests, which cannot reach the closures and calls inside `_update` (nothing is committed for these): (a) run a throwaway script on `master` and on the branch that calls `_prefetch_jpeg` and `_prefetch_3d_mesh` (each with its own signature) with a fake data loader, in log and non-log mode, and compare `_jpeg_cache` and `_mesh3_cache`; (b) launch `./mfc.sh viz <fixture> --interactive` on the 2D and 3D fixtures before and after and compare the status line, color bar and log toggle, and on the 3D fixture use isosurface and volume mode and play through the steps, so the six changed `_update` calls (prefetch and cache lookup) run. Save the output in `test_evidence.md`.
 6. Run the manifest checks: `./mfc.sh precheck -j 4`, `test_viz.py`, and `./mfc.sh test -j 12` (baseline on master: 726 passed, 0 failed, 39 skipped).
 7. Push the branch to my fork and check that the lint-gate CI run there can import `interactive.py` (the `turbojpeg` risk below). If it cannot, handle it before opening the PR.
 8. Open the PR from my fork, using the PR template, with `Fixes #1518`, and state that AI assistance was used.
@@ -338,6 +337,9 @@ Risk: `interactive.py` raises at import where `libturbojpeg` is missing (the `ex
 Deviations from this plan:
 
 - 2026-11-01: My first draft put the tests last, which contradicted my claim comment on the issue ("I'll start by writing the unit tests ... then implement the fix against them"). I rolled back the one code commit I had made. My second draft wrote all the tests at once before any helper, which is not TDD, so I discarded those too. The plan now uses red-green-refactor cycles, one test at a time, with each helper its own numbered step (steps 2 to 4) and committed together with its tests and call-site changes.
+- 2026-11-04: Rewrote step 3 again to use the issue's "small namedtuple" option. Building a plain-tuple key at each of the six `_update` calls still repeated the 11 values and their defaults six times. With a `_Mesh3Key` namedtuple, `_update` builds the key once and the prefetches use `mesh_key._replace(step=_ns)`, so the values and defaults appear once. I undid the uncommitted plain-tuple version of step 3 and started it again from this plan.
+- 2026-11-04: Corrected two facts in the Analysis after re-checking `master`: the four status Div sites are the 3D kaleido, 3D patch, 2D patch and shared full-figure paths (I had named them wrongly), and the floor literal appears nine times, not five. Also added the type hints to `_log_transform`'s signature and marked steps 1 and 2 done.
+- 2026-11-04: Rewrote step 3 to pass the key. My first version only replaced the two hand-built tuples (L350, L432) and left the 11-argument signatures, which met two of the issue's three sites and left most of the copy-paste hazard in place. The issue says to use `_mesh3_key` "at all three sites", including the `_update` calls at ~L1890, so `_prefetch_3d_mesh` and `_get_cached_3d_mesh` now take the key and `_update` builds it. `test_prefetch_then_lookup` is dropped, because with both functions taking the same key object it no longer checks anything the new tests do not. I undid the uncommitted step 3 code and started it again from this plan.
 - 2026-11-02: In step 3, replaced `test_cache_lookup` (which only exercises the lookup side) with `test_prefetch_then_lookup`, which runs `_prefetch_3d_mesh` and then `_get_cached_3d_mesh`, so it covers both places that build the key.
 - 2026-11-01: The issue calls the status Div "8-child"; the code has 7 children (6 `Span`s and one `Br`). Corrected in the Analysis.
 - 2026-11-01: Added step 7 (push to my fork and check the CI lint-gate run for the `turbojpeg` import) so the risk below is checked, not just noted.
@@ -345,26 +347,40 @@ Deviations from this plan:
 
 **Toolkit**
 
-- Tool: plan-check skill, run in Claude Code on `plan.md` and my draft `plan-comment.md` against issue #1518. It checked the plan against the live issue and the code, then graded five required checks (diagnosis, scope, executability, test-plan, comms) and read the comment against my voice guide.
-- What it produced: `accept` on the first run, with all five checks passing. It re-grepped `interactive.py` and confirmed my line numbers (4 status Divs, `_tf` at 379/386/1853/1861, the key at 350/432, no `interactive` references in `test_viz.py`). It also noted that my plan comment breaks my own "Be concise" rule and repeats my claim.
-- Difficulties: My procedure expects a posted repro comment on the issue, and I never posted one (my reproduction lives in this story), so it graded the diagnosis on the plan's own citations plus its live check. It also exposed that `procedure.md` calls the first check `root cause` while the rubric calls it `diagnosis`, and that the evidence guide's honesty section has no rubric check. The JSON it printed had a typo in a key name, which I caught on reading it.
-- What changed: The verdict did not require any change to `plan.md`. I still need to shorten the plan comment to fit my concision rule before posting it, consider adding a line to the test plan that re-runs my four grep reproduction steps, and fix the `root cause` and `diagnosis` naming in my procedure.
+- Tool: plan-check skill, run in Claude Code on `plan.md` and my draft `plan-comment.md` against issue #1518. It checked the plan against the live issue and the code, then graded five required checks (diagnosis, scope, executability, test-plan, comms) and read the comment against my voice guide. I re-ran it each time the plan changed, as its instructions say to.
+- What it produced: `accept` on all five runs, with all five checks passing each time. The runs covered the TDD restructure, the added CI check, passing the key into `_prefetch_3d_mesh` and `_get_cached_3d_mesh`, and the final `_Mesh3Key` namedtuple version. Each time it re-checked my facts on `master` (4 status Divs with 7 children each, 9 `1e-300` literals, `_tf` at 379/386/1853/1861, the key built at 350/432, six `_update` calls, no `interactive` references in `test_viz.py`). The last run also listed four voice-guide breaks in my plan comment: too long for my "Be concise" rule, a redundant re-claim, a vague closing question, and no mention of the `_Mesh3Key` rename or the defaults being written once.
+- Difficulties: My procedure expects a posted repro comment, and this refactor issue has none, so it graded the diagnosis on the issue body and its own live check; my procedure has no rule for that case. It also exposed that `procedure.md` calls the first check `root cause` while the rubric calls it `diagnosis`, and that the evidence guide's honesty section has no rubric check. Because it accepted every version, it did not catch that my first mesh key plan met only two of the issue's three sites; I found that by rereading the issue. One run happened on the wrong model, so I switched and re-ran.
+- What changed: The plan changed between runs because of my own review, not because plan-check rejected anything. After the last run I rewrote the plan comment to six short sentences: I dropped the re-claim and the long cause paragraph, named both differences from the issue (the `_log_transform` arguments and the `_Mesh3Key` namedtuple with its defaults written once), and made the question say what it is about. It is still over my four-sentence target, because I kept the CI risk and the AI disclosure. I still need to fix the `root cause` and `diagnosis` naming in my procedure, and add a rule for issues with no repro.
 
 ---
 
 ## Testing Strategy
 
-[What observable checks prove the fix: your reproduction steps re-run
-against the built change (before and after), and the repo's own test
-suite or checks with the outcome shown. "Tests pass" with nothing
-observable named is not a strategy.]
+Two observable checks prove the fix, and both are recorded in my `test_evidence.md` with their output.
+
+**1. The reproduction, before and after.** I re-ran the four greps from Reproduction Process on my branch (`5dfd5ba4`, steps 2 to 4 committed):
+
+| Check | Before (master) | After (branch) |
+|---|---|---|
+| Status `html.Div` copies (`shape {raw.shape}`) | 4 copies (L1971, 2120, 2470, 2626) | 0 copies; `_status_div(...)` called at the 4 sites |
+| `_tf` closures and the `1e-300` floor | `_tf` at L379/386/1853/1861, `1e-300` nine times | no `_tf`; `1e-300` only in `_LOG_FLOOR`; `_log_transform(...)` called at 3 sites |
+| Hand-built mesh cache key | tuple at L350 and L432, 11 arguments at six `_update` calls | no tuples; one `_Mesh3Key` built in `_update` and passed to all six calls |
+| Tests for `interactive.py` in `test_viz.py` | 0 | `TestLogTransform`, `TestMesh3Key`, `TestStatusDiv` |
+
+**2. The repo's own checks** (the rows of my ship-gate manifest): `./mfc.sh precheck -j 4` passes all seven steps (formatting, spelling, ruff plus every toolchain unit test, source lint, doc references, parameter docs, example cases); `test_viz.py` gives 67 passed and 19 skipped (86 passed with the render tests); and `./mfc.sh test -j 12`, the full regression suite, is running (baseline on an older master, `e95a827a`: 726 passed, 0 failed, 39 skipped).
+
+How the new tests were checked: each was written before its code, and all but one failed first for the expected reason. The exception, the any-field guard on `_Mesh3Key`, passed immediately, as the plan allowed. It and the `_prefetch_3d_mesh` range test, which guards the field order, were checked with a negative control: a deliberate temporary bug that the test caught.
+
+Code the unit tests cannot reach: the changed lines inside `_update`, the Dash callback. For those I used three checks: an AST comparison showing every rewritten call gets exactly the key or values it got before; a script comparing `master` and the branch's prefetch caches on identical inputs (2D 36 of 36 and 3D 48 of 48 identical; a deliberately wrong key made 48 of 48 differ); and both viewers side by side on the 2D and 3D fixtures, which looked the same, with 0 errors and the same rate of prefetched-mesh hits during 3D playback (about 98%).
+
+What these do not cover: the kaleido server-side render path and the prefetch call used when no single-variable reader is passed. Kaleido rendering fails on `master` and my branch alike (`to_image() got an unexpected keyword argument 'engine'`), and `./mfc.sh viz` always passes a reader, so no viewer run reaches them; only the AST checks cover those two sites.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: the ship-gate, through the project checks in my manifest that it runs before a PR opens: `./mfc.sh precheck -j 4`, the `test_viz.py` row and `./mfc.sh test -j 12`. I ran them on my branch first; what the gate itself says will be added when I run it.
+- What it produced: precheck passes all seven steps, `test_viz.py` gives 67 passed and 19 skipped, and the full regression suite is running (baseline on an older master: 726 passed, 0 failed, 39 skipped). The before and after output the gate's pr-precheck will read is in my `test_evidence.md`.
+- Difficulties: The manifest's checks cannot reach the changed calls inside `_update`, because no unit test can, so those needed checks the gate does not run: an AST comparison, a master-vs-branch cache comparison and a side-by-side viewer run. One test run put `MFC_SKIP_RENDER_TESTS=1` in front of `cd` instead of `python`, so the render tests ran and the counts looked wrong (79 passed instead of 60 passed and 19 skipped). `./mfc.sh test` takes about an hour, so every gate run will too, and my baseline is from an older master.
+- What changed: The skip variable now goes directly before the `python` command. I recorded the extra checks, and the two sites nothing could reach, in `test_evidence.md` so the gate and a reviewer can see them, and gave a negative control to any test that passed without failing first.
 
 ---
 
@@ -379,14 +395,38 @@ Before writing code I checked that the new tests can import `interactive.py`. Th
 
 **2026-11-01 (later)**
 
-Re-read my claim comment on the issue and saw it promised tests first, but my plan had them last. I rolled the branch back to `a03848a0` (upstream `master`, unchanged since my baseline). I then wrote all three test classes at once before any helper existed (7 failed with `AttributeError`, 1 passed), but that is not TDD: TDD adds one failing test, makes it pass, and only then adds the next. I discarded those tests (nothing was committed) and rewrote the plan as one-test-at-a-time cycles. Each helper will be committed with its tests, because the pre-commit hook runs the unit tests and rejects a failing commit. Mistake caught along the way: a Python one-liner of mine truncated `plan.md` by opening it for writing before reading it; I restored it from this story's Solution Approach, which holds an identical copy.
+Re-read my claim comment on the issue and saw it promised tests first, but my plan had them last. I rolled the branch back to `a03848a0` (upstream `master`, unchanged since my baseline). I then wrote all three test classes at once before any helper existed (7 failed with `AttributeError`, 1 passed), but that is not TDD: TDD adds one failing test, makes it pass, and only then adds the next. I discarded those tests (nothing was committed) and rewrote the plan as one-test-at-a-time cycles. Each helper will be committed with its tests, because the pre-commit hook runs the unit tests and rejects a failing commit. Mistake caught along the way: a Python one-liner Claude Code ran truncated `plan.md` by opening it for writing before reading it; I restored it from this story's Solution Approach, which holds an identical copy.
+
+**2026-11-01 (step 2: `_log_transform` and `_LOG_FLOOR`)**
+
+Built `_log_transform` in three red-green cycles, one test at a time: log values with NaN for non-positive input, then the identity branch for `log=False`, then the `_LOG_FLOOR` clamp. Each test failed for the expected reason before any code existed. The refactor replaced the four `_tf` closures and their `cmin`/`cmax` lines, plus the 2D JPEG path's inline log, which the issue does not list. Because that 2D site was my own addition, I checked it by running `master` and my branch on the same 56 inputs and comparing the arrays passed to the image encoder, with a deliberately broken floor as a control (20 of 56 then differed). Review changes: I moved `_LOG_FLOOR` from the middle of the file to the top constants block where the file keeps its other numbers, added the `log: bool` type hints the issue's signature shows, and renamed the tests (for example `test_log_true_clamps_zero_vmin_to_floor`) so their names say what they check. Claude Code had committed for me with long messages; I undid that so I review and make every commit myself, with one-line messages. Committed as `46ce57ab`.
+
+**2026-11-02 (step 3, first attempt)**
+
+My first `_mesh3_key` version only replaced the two hand-built key tuples (L350, L432) with a helper call, plus a round-trip test that prefetches a mesh and looks it up. The six `_update` calls still passed the same 11 arguments each. I did not commit it.
+
+**2026-11-04 (step 3, redesign)**
+
+I asked whether the round-trip test was really needed, and then whether `_prefetch_3d_mesh` should take a key instead of 11 separate arguments. Rereading the issue ("use it at all three sites", "passed positionally from `_update` at ~1890", "or a small namedtuple"), I decided the key should be built by the caller and passed in. A plain-tuple version still listed the 11 values and their defaults at all six calls, so I switched to a `_Mesh3Key` `typing.NamedTuple` that `_update` builds once; the prefetches use `mesh_key._replace(step=_ns)` for the next step. I checked that none of the 11 inputs change after `log` is resolved, so building the key there is safe, and that `_replace` returns a new key instead of changing the one the lookups use. Each redesign went through `plan.md`, this story and the plan comment together, with plan-check re-run (accept each time). TDD: field order and the any-field guard, then `_get_cached_3d_mesh(key)` and `_prefetch_3d_mesh(key, get_ad_fn)` each failed while they still took 11 arguments. The prefetch test checks the stored volume range, so a swapped unpack would fail it (confirmed with a control). The six `_update` calls have no unit tests, so the refactor was done from the parsed code and checked with the AST: each call gets exactly the key it got before. Committed as `0c3b9c10`.
+
+**2026-11-04 (step 4: `_status_div`)**
+
+Two red-green cycles: the Div's children, text and colors, then the `.4g` number format (the first version printed raw numbers until the second test asked for `.4g`). Before replacing the four copies in `_update`, I checked with the AST that each one is exactly the helper's body with its own variables; all four were, differing only in the min/max names. Claude Code's first refactor script read the wrong part of each `html.Span` and matched nothing, but its "exactly four" check stopped it before it wrote anything. `test_viz.py` is now 1,018 lines, over the 1,000-line soft limit, which I still need to decide on. Committed as `5dfd5ba4`.
+
+**2026-11-04 to 2026-11-05 (step 5: before/after checks)**
+
+A throwaway script ran `master` and my branch on the same inputs and compared their prefetch caches: 36 of 36 2D cases and 48 of 48 3D cases identical, and a deliberately wrong key made all 48 3D cases differ. Then I ran both viewers side by side on the 2D and 3D fixtures; they looked the same, and their logs showed the same rate of prefetched-mesh hits during 3D playback (about 98%). Two changed sites cannot be reached from the viewer here: kaleido rendering fails on both versions (`to_image() got an unexpected keyword argument 'engine'`, an existing plotly/kaleido mismatch unrelated to this change), and one prefetch call only runs when no single-variable reader is passed. The AST checks from steps 3 and 4 cover both.
+
+**2026-11-05 (step 6: manifest checks)**
+
+`./mfc.sh precheck` passes all seven steps and `test_viz.py` passes (67 passed, 19 skipped). The four reproduction greps now show each duplication gone and the new tests present. The full regression suite (`./mfc.sh test -j 12`, about an hour) is running; my baseline was on an older `master`, so if a test fails I will rerun it on the branch's base before deciding whether it is related.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: plan-check, re-run during the build each time my plan changed, as its instructions say to do after a deviation.
+- What it produced: `accept` on each re-run: after I changed step 3 to pass the key into `_prefetch_3d_mesh` and `_get_cached_3d_mesh`, and after I switched to the `_Mesh3Key` namedtuple built once in `_update`. Each time it re-checked the new claims against master, including the six `_update` calls and that none of the key's inputs change after `log` is resolved.
+- Difficulties: It grades the plan, not the code, so it could not tell me whether what I built matched the plan; the tests and AST checks did that. It also accepted every version, including my first step 3 that met only two of the issue's three sites, so the redesigns came from my own rereading of the issue, not from its feedback.
+- What changed: At each change I updated `plan.md`, the Implementation Plan and the Deviations list together before re-running it, so it graded what I was actually going to build, and I abandoned and redid uncommitted step 3 code instead of letting it drift from the plan.
 
 ---
 
