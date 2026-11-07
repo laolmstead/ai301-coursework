@@ -11,7 +11,7 @@ files and no evidence uploads are part of Assignment 5.
 **Student:** Lindsey Olmstead
 **GitHub Username:** laolmstead
 **Issue:** https://github.com/MFlowCode/MFC/issues/1518
-**Pull Request:** [GitHub PR link, once opened]
+**Pull Request:** https://github.com/MFlowCode/MFC/pull/2170
 
 One repository, built across units 5 to 8, telling the whole story of your real
 contribution. Fill it as you work, not at the end — the sections below ask for evidence that
@@ -56,30 +56,29 @@ one in the week it belongs to.
 
 **Unit 5: Built an issue scout that searches GitHub for first contribution issues**
 
-I built my scout to pull a list of 100 bugs that were tagged with both "good first issue" and "help wanted". Additionally, I limited my search to open, unassigned issues, with python listed as the language. In my ranking filters, I de-prioritized issues that were documentation only and added a preference for fewer comments to try to filter out issues complex issues that have been debated.
+I built my scout to pull 100 open, unassigned Python bugs tagged with both "good first issue" and "help wanted". In my ranking filters, I de-prioritized issues that were documentation only and added a preference for fewer comments to try to filter out complex issues that have been debated.
 
 When I first ran my scout, it only returned issues from 1 repository because there was one particularly spammy repository where 100s of translation tickets were being created at once. To fix this I updated my query to add a jq filter which limited the search to one issue per repository.
 
 **Unit 6: Installed the voice guard and wrote a memory file for MFC**
 
-I added an Upstream section to my voice guide and installed the voice-guard hook. My first install didn't work because I pasted the hook into `~/.claude.json` instead of `~/.claude/settings.json`, so it never fired. I only caught that when I checked the guard log, which had no hook entries. After moving it, the wiring test blocked `gh issue comment --help`, and my claim draft passed the guard's check. 
+I added an Upstream section to my voice guide and installed the voice-guard hook, but my first install never fired because I pasted the hook into `~/.claude.json` instead of `~/.claude/settings.json`, which I only caught when the guard log had no hook entries. After moving it, the wiring test blocked `gh issue comment --help`, and my claim draft passed the guard's check. 
 
 For MFC, I wrote a short `CLAUDE.local.md` with the contributing rules, the parts of `interactive.py` and `test_viz.py` my issue touches, and the test commands. I kept it out of my PR with `.git/info/exclude`, and I dropped the `@AGENTS.md` import since a CLAUDE.md file exists for the repo.
 
 **Unit 7: Installed the ship-gate and wrote its manifest for MFC**
 
-I wrote the manifest from MFC's contributing guide, whose Lint Gate lists six checks that `./mfc.sh precheck` bundles, and ran every command in a shell before trusting it. `./mfc.sh lint` failed on `test_format_tar_zst` because `zstd` was not installed, so my first draft excluded it; after I installed `zstd`, precheck passed all seven steps and I replaced several rows with one `./mfc.sh precheck -j 4` row. I also added a row that runs `test_viz.py` and one for `./mfc.sh test -j 12`, whose baseline on master (726 passed, 62 minutes) tells me the gate will take about an hour per run. I have not run the ship-gate on my branch yet, so what it says about my changes is still to come.
+I wrote the manifest from MFC's contributing guide, whose Lint Gate lists six checks that `./mfc.sh precheck` bundles, and ran every command in a shell before trusting it. `./mfc.sh lint` failed on `test_format_tar_zst` because `zstd` was not installed, so my first draft excluded it; after I installed `zstd`, precheck passed all seven steps and I replaced several rows with one `./mfc.sh precheck -j 4` row. I also added rows for `test_viz.py` and `./mfc.sh test -j 12`, but later moved the regression suite to the excluded table: on my branch it took 88 minutes, and two slow phase-change tests timed out under load even though both passed when run alone. My first gate run on the branch blocked because my own pr-precheck failed test-evidence: I had cut the PR description until its Verification section ended mid-sentence, and it passed once I fixed that, but it could not catch the CI-only `turbojpeg` failure that followed, because it runs on my machine, where that library is installed.
 
-**Unit 8: [one line on the tool work]**
+**Unit 8: Installed the PR monitor and wrote my playbook for MFC**
 
-[2-4 sentences: the PR-monitor and your playbook. What it read, what it
-drafted, what you did with the draft.]
+I installed the PR monitor and wrote my playbook from MFC's data: I checked six recent merged outside-contributor PRs (#2114, #2092, #2087, #2085, #2055, #2038), where a maintainer's first response took 0.2 to 4.8 days, and set the first-review threshold at 7 quiet days with one nudge only, tagging no one if nobody has engaged. The monitor's first `--state` run read PR #2170 as "feedback-in", but the only new comments were bots (the review bot's failed run and Codecov), which I confirmed with `gh`. Once the playbook was filled in, a full run drafted "Wait, no nudge yet" through the polite-nudge form: the PR is a day old, 27 checks are still pending, and my own rule says the threshold is met 2026-11-13. I followed the draft, posted nothing, and tightened my playbook so the stalled-review clock is counted the way the monitor counts it (days since anyone but me commented, with bots not restarting it), because the draft had to guess which date my clock started.
 
 ---
 
 ## Why I Chose This Issue
 
-I searched by reviewing the issues and repositories on https://open-source-issue-tracker.onrender.com/ and picking a few that interested me. Several already had open PRs or comments saying someone had started on them, so the search took quite some time. I then expanded beyond bugs to include enhancements, and that's when I found the MFC repo and my issue. I ran my scout a few times and it always ranked this issue at the top. Its verdict was accept, with a difficulty note of straightforward: the issue names the files, line numbers, and three pure-function extractions plus the unit tests to add, and it has no assignee and no comments. The scout did fail the neat-subject check, because the repo description ("Exascale multiphase flow solver") contained none of my keywords at the time. That check is only preferred, not required, so it did not block the accept, and I chose the issue anyway because MFC is a fluid dynamics simulator, which fits my earlier background in Civil/Environmental Engineering.
+I searched by reviewing the issues and repositories on https://open-source-issue-tracker.onrender.com/ and picking a few that interested me. Several already had open PRs or comments saying someone had started on them, so the search took quite some time. I then expanded beyond bugs to include enhancements, and that's when I found the MFC repo and my issue. I ran my scout a few times and it always ranked this issue at the top. Besides the five issues from its own scan, it graded my picks from the Issue Selection site in three rounds: CTSM #1547, ArduPilot #12625 and GRASS #3252, the same three again after my scope patch, and then MFC #1518, TaskChampion #410 and MFC #2086. Its verdict was accept, with a difficulty note of straightforward: the issue names the files, line numbers, and three pure-function extractions plus the unit tests to add, and it has no assignee and no comments. The scout did fail the neat-subject check, because the repo description ("Exascale multiphase flow solver") contained none of my keywords at the time. That check is only preferred, not required, so it did not block the accept, and I chose the issue anyway because MFC is a fluid dynamics simulator, which fits my earlier background in Civil/Environmental Engineering.
 
 The issue is also a fairly straightforward refactor that I can finish in the allotted time given my work schedule. I hope to learn more about this repository so I can keep contributing to it and to other open source Civil/Environmental Engineering repos. I would love to become part of this niche contributor community. I also read MFC's contributing guide (https://mflowcode.github.io/documentation/contributing.html). It says nothing about AI, so nothing prohibits AI-assisted contributions, and the repo's `AGENTS.md` and `.github/copilot-instructions.md` tell AI coding agents how to work in it, which suggests AI tools are expected.
 
@@ -102,7 +101,7 @@ https://github.com/MFlowCode/MFC/issues/1518#issuecomment-6406052284
 
 Three different pieces of logic are repeated in multiple places in the code base. The duplicate logic presents a risk that if a change is made in one place, it could be missed or copied wrong in another which could lead to unintended bugs.
 
-The goal of this issue is to de-depulicate this logic and add unit tests to verify the existing behavior.
+The goal of this issue is to de-duplicate this logic and add unit tests to verify the existing behavior.
 
 **Expected Behavior**
 
@@ -299,15 +298,16 @@ Extract each piece into one module-level helper in `interactive.py` and call it 
 - `_status_div(step, shape, dmin, dmax) -> html.Div`, called at the four sites.
 - `_log_transform(log: bool, vmin: float, vmax: float) -> tuple`, returning `(tf, cmin, cmax)`. The issue writes `_log_transform(log)`, but it also asks for the cmin/cmax pair, which needs vmin/vmax, so I take them as arguments. It replaces the four `_tf` closures and their adjacent cmin/cmax lines; the 2D path (~L302-304) computes the same values, so it uses it too.
 - `_Mesh3Key`, a small `typing.NamedTuple` with the 11 fields `(step, var, mode, log_bool, vmin_in, vmax_in, iso_min_frac, iso_max_frac, iso_n, vol_min_frac, vol_max_frac)`. This is the issue's "small namedtuple" option, used at all three sites it names: `_update` builds one key per call (`mesh_key`), passes it to its four `_get_cached_3d_mesh` lookups and `mesh_key._replace(step=_ns)` to its two `_prefetch_3d_mesh` calls, and `_prefetch_3d_mesh(key, get_ad_fn)` and `_get_cached_3d_mesh(key)` take the key instead of 11 separate arguments (replacing the tuples at L350 and L432). The issue writes `_mesh3_key(...)`; a namedtuple class is named `_Mesh3Key` by Python convention. Because the key is built once, its `or 0.2`-style defaults are written once instead of six times; the issue does not ask for that, but it follows from passing one key and removes the same kind of drift.
+- The `turbojpeg` import guard at the top of `interactive.py` also catches `RuntimeError`, which current PyTurboJPEG raises when the native `libturbojpeg` library is missing. Without it the module cannot be imported where the library is absent, as on CI's runners, so none of the new tests can run there; with it the module falls back to Pillow as its own comment says. The issue does not ask for this; it was added after the PR's first CI run failed (step 7), with its own test, `TestTurboJPEGFallback`.
 - Add `TestStatusDiv`, `TestLogTransform` and `TestMesh3Key` to `toolchain/mfc/viz/test_viz.py`, the first tests for `interactive.py`. Keep them short, since the file is at 917 lines and the soft limit is 1000.
 
 Not changing:
-- Callback control flow, `_update`'s structure (beyond the one added `mesh_key` line and the six simpler calls), `turbojpeg` handling, any other file, and any rendered output.
+- Callback control flow, `_update`'s structure (beyond the one added `mesh_key` line and the six simpler calls), any other file, and any rendered output.
 
 **Implementation Plan**
 
-1. Branch `feature/viz-interactive-dedup` from the synced upstream `master` (done; branched from `a03848a0`).
-2. Extract `_log_transform` and `_LOG_FLOOR`, using TDD (done; committed as `46ce57ab`). Each cycle is: write one test in `test_viz.py` (`TestLogTransform`), run it and confirm it fails for the expected reason (red), write the least code in `interactive.py` that makes it pass (green), tidy, and re-run the suite before the next test.
+1. Branch `feature/viz-interactive-dedup` from the synced upstream `master` (done; branched from `a03848a0`, then rebased onto upstream `master` at `643ceae5` before pushing).
+2. Extract `_log_transform` and `_LOG_FLOOR`, using TDD (done; committed as `1f6a6948`). Each cycle is: write one test in `test_viz.py` (`TestLogTransform`), run it and confirm it fails for the expected reason (red), write the least code in `interactive.py` that makes it pass (green), tidy, and re-run the suite before the next test.
    1. Test: `log=True` returns the log10 transform (NaN for non-positive input) with `cmin`/`cmax`. Then add `_log_transform` to pass it.
    2. Test: `log=False` returns the input unchanged with `vmin`/`vmax`. Then add the identity branch.
    3. Test: `vmin=0` clamps to the `_LOG_FLOOR` constant. Then add `_LOG_FLOOR` and use it in the helper.
@@ -327,16 +327,17 @@ Not changing:
    4. Commit the helper, its call-site changes and its tests as one commit.
 5. Beyond the unit tests, which cannot reach the closures and calls inside `_update` (nothing is committed for these): (a) run a throwaway script on `master` and on the branch that calls `_prefetch_jpeg` and `_prefetch_3d_mesh` (each with its own signature) with a fake data loader, in log and non-log mode, and compare `_jpeg_cache` and `_mesh3_cache`; (b) launch `./mfc.sh viz <fixture> --interactive` on the 2D and 3D fixtures before and after and compare the status line, color bar and log toggle, and on the 3D fixture use isosurface and volume mode and play through the steps, so the six changed `_update` calls (prefetch and cache lookup) run. Save the output in `test_evidence.md`.
 6. Run the manifest checks: `./mfc.sh precheck -j 4`, `test_viz.py`, and `./mfc.sh test -j 12` (baseline on master: 726 passed, 0 failed, 39 skipped).
-7. Push the branch to my fork and check that the lint-gate CI run there can import `interactive.py` (the `turbojpeg` risk below). If it cannot, handle it before opening the PR.
+7. Push the branch and check that CI can import `interactive.py` (the `turbojpeg` risk below). It could not: on the PR's first CI run all nine new tests failed with `RuntimeError: Unable to locate turbojpeg library`. Fix it test-first: a test that reloads `interactive.py` with `TurboJPEG()` raising `RuntimeError` fails, then adding `RuntimeError` to the import guard makes it pass. Commit and push it, update the PR description, and post a PR comment that explains it and offers to move it to its own PR.
 8. Open the PR from my fork, using the PR template, with `Fixes #1518`, and state that AI assistance was used.
 
 Tests come first because my claim comment on the issue says I would write the tests first and implement against them, and the issue asks for tests that make the dedup verifiable. Each helper is committed with its tests because the pre-commit hook runs the unit tests and would reject a commit with a failing test.
 
-Risk: `interactive.py` raises at import where `libturbojpeg` is missing (the `except` catches `ImportError`/`OSError`, but this `turbojpeg` raises `RuntimeError`), so the new tests need that library installed locally. If CI also lacks it, the tests would fail there; I'll check the first CI run and handle it in the PR rather than widening scope silently.
+Risk: `interactive.py` raises at import where `libturbojpeg` is missing (the `except` catches `ImportError`/`OSError`, but this `turbojpeg` raises `RuntimeError`), so the new tests need that library installed locally. If CI also lacks it, the tests would fail there; I'll check the first CI run and handle it in the PR rather than widening scope silently. CI did lack it; step 7 records the fix.
 
 Deviations from this plan:
 
 - 2026-11-01: My first draft put the tests last, which contradicted my claim comment on the issue ("I'll start by writing the unit tests ... then implement the fix against them"). I rolled back the one code commit I had made. My second draft wrote all the tests at once before any helper, which is not TDD, so I discarded those too. The plan now uses red-green-refactor cycles, one test at a time, with each helper its own numbered step (steps 2 to 4) and committed together with its tests and call-site changes.
+- 2026-11-06: Added a fix the issue does not ask for. On the PR's first CI run all nine new tests failed, because `interactive.py` cannot be imported without the native `libturbojpeg`: PyTurboJPEG raises `RuntimeError`, which the import guard did not catch, so the Pillow fallback never ran. I added `RuntimeError` to the guard, with a test, and removed "`turbojpeg` handling" from Not changing.
 - 2026-11-04: Rewrote step 3 again to use the issue's "small namedtuple" option. Building a plain-tuple key at each of the six `_update` calls still repeated the 11 values and their defaults six times. With a `_Mesh3Key` namedtuple, `_update` builds the key once and the prefetches use `mesh_key._replace(step=_ns)`, so the values and defaults appear once. I undid the uncommitted plain-tuple version of step 3 and started it again from this plan.
 - 2026-11-04: Corrected two facts in the Analysis after re-checking `master`: the four status Div sites are the 3D kaleido, 3D patch, 2D patch and shared full-figure paths (I had named them wrongly), and the floor literal appears nine times, not five. Also added the type hints to `_log_transform`'s signature and marked steps 1 and 2 done.
 - 2026-11-04: Rewrote step 3 to pass the key. My first version only replaced the two hand-built tuples (L350, L432) and left the 11-argument signatures, which met two of the issue's three sites and left most of the copy-paste hazard in place. The issue says to use `_mesh3_key` "at all three sites", including the `_update` calls at ~L1890, so `_prefetch_3d_mesh` and `_get_cached_3d_mesh` now take the key and `_update` builds it. `test_prefetch_then_lookup` is dropped, because with both functions taking the same key object it no longer checks anything the new tests do not. I undid the uncommitted step 3 code and started it again from this plan.
@@ -358,36 +359,35 @@ Deviations from this plan:
 
 Two observable checks prove the fix, and both are recorded in my `test_evidence.md` with their output.
 
-**1. The reproduction, before and after.** I re-ran the four greps from Reproduction Process on my branch (`5dfd5ba4`, steps 2 to 4 committed):
+**1. The reproduction, before and after.** I re-ran the four greps from Reproduction Process on my branch (`e589daa9`, steps 2 to 4 committed):
 
 | Check | Before (master) | After (branch) |
 |---|---|---|
 | Status `html.Div` copies (`shape {raw.shape}`) | 4 copies (L1971, 2120, 2470, 2626) | 0 copies; `_status_div(...)` called at the 4 sites |
 | `_tf` closures and the `1e-300` floor | `_tf` at L379/386/1853/1861, `1e-300` nine times | no `_tf`; `1e-300` only in `_LOG_FLOOR`; `_log_transform(...)` called at 3 sites |
 | Hand-built mesh cache key | tuple at L350 and L432, 11 arguments at six `_update` calls | no tuples; one `_Mesh3Key` built in `_update` and passed to all six calls |
-| Tests for `interactive.py` in `test_viz.py` | 0 | `TestLogTransform`, `TestMesh3Key`, `TestStatusDiv` |
+| Tests for `interactive.py` in `test_viz.py` | 0 | `TestLogTransform`, `TestMesh3Key`, `TestStatusDiv`, `TestTurboJPEGFallback` |
 
-**2. The repo's own checks** (the rows of my ship-gate manifest): `./mfc.sh precheck -j 4` passes all seven steps (formatting, spelling, ruff plus every toolchain unit test, source lint, doc references, parameter docs, example cases); `test_viz.py` gives 67 passed and 19 skipped (86 passed with the render tests); and `./mfc.sh test -j 12`, the full regression suite, is running (baseline on an older master, `e95a827a`: 726 passed, 0 failed, 39 skipped).
+**2. The repo's own checks** (my ship-gate manifest's two rows, plus the full regression suite, which I later moved to the manifest's excluded table because of the timeouts described here): `./mfc.sh precheck -j 4` passes all seven steps (formatting, spelling, ruff plus every toolchain unit test, source lint, doc references, parameter docs, example cases); `test_viz.py` gives 68 passed and 19 skipped (87 passed with the render tests); and `./mfc.sh test -j 12`, the full regression suite, ran 727 passed, 2 failed and 39 skipped in 88 minutes. The 2 failures were timeouts in a Fortran phase-change test (`AAE5C27B`, `02BD9B5E`) that ran past the suite's 1-hour limit while sharing the machine with heavy 3D tests; run alone, both passed in about 11 minutes. My baseline on an older master (`e95a827a`) was 726 passed, 0 failed, 39 skipped.
 
 How the new tests were checked: each was written before its code, and all but one failed first for the expected reason. The exception, the any-field guard on `_Mesh3Key`, passed immediately, as the plan allowed. It and the `_prefetch_3d_mesh` range test, which guards the field order, were checked with a negative control: a deliberate temporary bug that the test caught.
 
 Code the unit tests cannot reach: the changed lines inside `_update`, the Dash callback. For those I used three checks: an AST comparison showing every rewritten call gets exactly the key or values it got before; a script comparing `master` and the branch's prefetch caches on identical inputs (2D 36 of 36 and 3D 48 of 48 identical; a deliberately wrong key made 48 of 48 differ); and both viewers side by side on the 2D and 3D fixtures, which looked the same, with 0 errors and the same rate of prefetched-mesh hits during 3D playback (about 98%).
 
+On the PR, CI's toolchain jobs (Python 3.9 to 3.14) run all ten new tests and pass after the import-guard fix.
+
 What these do not cover: the kaleido server-side render path and the prefetch call used when no single-variable reader is passed. Kaleido rendering fails on `master` and my branch alike (`to_image() got an unexpected keyword argument 'engine'`), and `./mfc.sh viz` always passes a reader, so no viewer run reaches them; only the AST checks cover those two sites.
 
 **Toolkit**
 
-- Tool: the ship-gate, through the project checks in my manifest that it runs before a PR opens: `./mfc.sh precheck -j 4`, the `test_viz.py` row and `./mfc.sh test -j 12`. I ran them on my branch first; what the gate itself says will be added when I run it.
-- What it produced: precheck passes all seven steps, `test_viz.py` gives 67 passed and 19 skipped, and the full regression suite is running (baseline on an older master: 726 passed, 0 failed, 39 skipped). The before and after output the gate's pr-precheck will read is in my `test_evidence.md`.
-- Difficulties: The manifest's checks cannot reach the changed calls inside `_update`, because no unit test can, so those needed checks the gate does not run: an AST comparison, a master-vs-branch cache comparison and a side-by-side viewer run. One test run put `MFC_SKIP_RENDER_TESTS=1` in front of `cd` instead of `python`, so the render tests ran and the counts looked wrong (79 passed instead of 60 passed and 19 skipped). `./mfc.sh test` takes about an hour, so every gate run will too, and my baseline is from an older master.
-- What changed: The skip variable now goes directly before the `python` command. I recorded the extra checks, and the two sites nothing could reach, in `test_evidence.md` so the gate and a reviewer can see them, and gave a negative control to any test that passed without failing first.
+- Tool: the ship-gate, through the project checks in my manifest that it runs before a PR opens: `./mfc.sh precheck -j 4` and the `test_viz.py` row, plus `./mfc.sh test -j 12`, which started in the manifest and is now in its excluded table. I ran them on my branch first; what the gate itself says will be added when I run it.
+- What it produced: precheck passes all seven steps, `test_viz.py` gives 68 passed and 19 skipped, and the full regression suite gave 727 passed with 2 timeouts in a Fortran phase-change test, which both passed when rerun alone. The before and after output the gate's pr-precheck will read is in my `test_evidence.md`.
+- Difficulties: The manifest's checks cannot reach the changed calls inside `_update`, because no unit test can, so those needed checks the gate does not run: an AST comparison, a master-vs-branch cache comparison and a side-by-side viewer run. One test run put `MFC_SKIP_RENDER_TESTS=1` in front of `cd` instead of `python`, so the render tests ran and the counts looked wrong (79 passed instead of 60 passed and 19 skipped). `./mfc.sh test` took 88 minutes on my branch, and under that load two slow phase-change tests can time out, so a gate run could stop for a reason that has nothing to do with my change. My baseline is also from an older master.
+- What changed: I moved `./mfc.sh test -j 12` from the manifest's checks to its excluded table, dated 2026-11-05, with the timeout reason and the rerun as evidence, so the gate does not stop on a test my change cannot affect. The skip variable now goes directly before the `python` command. I recorded the extra checks, and the two sites nothing could reach, in `test_evidence.md` so the gate and a reviewer can see them, and gave a negative control to any test that passed without failing first.
 
 ---
 
 ## Implementation Notes
-
-[A running log, added to as you work. Date each entry. What you
-built, decisions you made when you made them, wrong turns included.]
 
 **2026-11-01**
 
@@ -399,7 +399,7 @@ Re-read my claim comment on the issue and saw it promised tests first, but my pl
 
 **2026-11-01 (step 2: `_log_transform` and `_LOG_FLOOR`)**
 
-Built `_log_transform` in three red-green cycles, one test at a time: log values with NaN for non-positive input, then the identity branch for `log=False`, then the `_LOG_FLOOR` clamp. Each test failed for the expected reason before any code existed. The refactor replaced the four `_tf` closures and their `cmin`/`cmax` lines, plus the 2D JPEG path's inline log, which the issue does not list. Because that 2D site was my own addition, I checked it by running `master` and my branch on the same 56 inputs and comparing the arrays passed to the image encoder, with a deliberately broken floor as a control (20 of 56 then differed). Review changes: I moved `_LOG_FLOOR` from the middle of the file to the top constants block where the file keeps its other numbers, added the `log: bool` type hints the issue's signature shows, and renamed the tests (for example `test_log_true_clamps_zero_vmin_to_floor`) so their names say what they check. Claude Code had committed for me with long messages; I undid that so I review and make every commit myself, with one-line messages. Committed as `46ce57ab`.
+Built `_log_transform` in three red-green cycles, one test at a time: log values with NaN for non-positive input, then the identity branch for `log=False`, then the `_LOG_FLOOR` clamp. Each test failed for the expected reason before any code existed. The refactor replaced the four `_tf` closures and their `cmin`/`cmax` lines, plus the 2D JPEG path's inline log, which the issue does not list. Because that 2D site was my own addition, I checked it by running `master` and my branch on the same 56 inputs and comparing the arrays passed to the image encoder, with a deliberately broken floor as a control (20 of 56 then differed). Review changes: I moved `_LOG_FLOOR` from the middle of the file to the top constants block where the file keeps its other numbers, added the `log: bool` type hints the issue's signature shows, and renamed the tests (for example `test_log_true_clamps_zero_vmin_to_floor`) so their names say what they check. Claude Code had committed for me with long messages; I undid that so I review and make every commit myself, with one-line messages. Committed as `1f6a6948`.
 
 **2026-11-02 (step 3, first attempt)**
 
@@ -407,11 +407,11 @@ My first `_mesh3_key` version only replaced the two hand-built key tuples (L350,
 
 **2026-11-04 (step 3, redesign)**
 
-I asked whether the round-trip test was really needed, and then whether `_prefetch_3d_mesh` should take a key instead of 11 separate arguments. Rereading the issue ("use it at all three sites", "passed positionally from `_update` at ~1890", "or a small namedtuple"), I decided the key should be built by the caller and passed in. A plain-tuple version still listed the 11 values and their defaults at all six calls, so I switched to a `_Mesh3Key` `typing.NamedTuple` that `_update` builds once; the prefetches use `mesh_key._replace(step=_ns)` for the next step. I checked that none of the 11 inputs change after `log` is resolved, so building the key there is safe, and that `_replace` returns a new key instead of changing the one the lookups use. Each redesign went through `plan.md`, this story and the plan comment together, with plan-check re-run (accept each time). TDD: field order and the any-field guard, then `_get_cached_3d_mesh(key)` and `_prefetch_3d_mesh(key, get_ad_fn)` each failed while they still took 11 arguments. The prefetch test checks the stored volume range, so a swapped unpack would fail it (confirmed with a control). The six `_update` calls have no unit tests, so the refactor was done from the parsed code and checked with the AST: each call gets exactly the key it got before. Committed as `0c3b9c10`.
+I asked whether the round-trip test was really needed, and then whether `_prefetch_3d_mesh` should take a key instead of 11 separate arguments. Rereading the issue ("use it at all three sites", "passed positionally from `_update` at ~1890", "or a small namedtuple"), I decided the key should be built by the caller and passed in. A plain-tuple version still listed the 11 values and their defaults at all six calls, so I switched to a `_Mesh3Key` `typing.NamedTuple` that `_update` builds once; the prefetches use `mesh_key._replace(step=_ns)` for the next step. I checked that none of the 11 inputs change after `log` is resolved, so building the key there is safe, and that `_replace` returns a new key instead of changing the one the lookups use. Each redesign went through `plan.md`, this story and the plan comment together, with plan-check re-run (accept each time). TDD: field order and the any-field guard, then `_get_cached_3d_mesh(key)` and `_prefetch_3d_mesh(key, get_ad_fn)` each failed while they still took 11 arguments. The prefetch test checks the stored volume range, so a swapped unpack would fail it (confirmed with a control). The six `_update` calls have no unit tests, so the refactor was done from the parsed code and checked with the AST: each call gets exactly the key it got before. Committed as `55765ec0`.
 
 **2026-11-04 (step 4: `_status_div`)**
 
-Two red-green cycles: the Div's children, text and colors, then the `.4g` number format (the first version printed raw numbers until the second test asked for `.4g`). Before replacing the four copies in `_update`, I checked with the AST that each one is exactly the helper's body with its own variables; all four were, differing only in the min/max names. Claude Code's first refactor script read the wrong part of each `html.Span` and matched nothing, but its "exactly four" check stopped it before it wrote anything. `test_viz.py` is now 1,018 lines, over the 1,000-line soft limit, which I still need to decide on. Committed as `5dfd5ba4`.
+Two red-green cycles: the Div's children, text and colors, then the `.4g` number format (the first version printed raw numbers until the second test asked for `.4g`). Before replacing the four copies in `_update`, I checked with the AST that each one is exactly the helper's body with its own variables; all four were, differing only in the min/max names. Claude Code's first refactor script read the wrong part of each `html.Span` and matched nothing, but its "exactly four" check stopped it before it wrote anything. `test_viz.py` is now 1,018 lines, over the 1,000-line soft limit, which I still need to decide on. Committed as `e589daa9`.
 
 **2026-11-04 to 2026-11-05 (step 5: before/after checks)**
 
@@ -419,7 +419,19 @@ A throwaway script ran `master` and my branch on the same inputs and compared th
 
 **2026-11-05 (step 6: manifest checks)**
 
-`./mfc.sh precheck` passes all seven steps and `test_viz.py` passes (67 passed, 19 skipped). The four reproduction greps now show each duplication gone and the new tests present. The full regression suite (`./mfc.sh test -j 12`, about an hour) is running; my baseline was on an older `master`, so if a test fails I will rerun it on the branch's base before deciding whether it is related.
+`./mfc.sh precheck` passes all seven steps and `test_viz.py` passes (67 passed, 19 skipped). The four reproduction greps now show each duplication gone and the new tests present. The full regression suite (`./mfc.sh test -j 12`) took 88 minutes: 727 passed, 39 skipped, and 2 failed by timing out after an hour, both in `2D -> Phase Change model 6 -> 3 Fluid(s)`. Those are Fortran tests my change doesn't touch, and the same two UUIDs had failed in a run before I started. I reran just those two with nothing else competing for the CPU, and both passed in about 11 minutes, so the timeouts came from load, not from my code.
+
+**2026-11-05 (step 7: rebase)**
+
+Rebased my three commits onto the current upstream `master` (`643ceae5`) so the PR applies cleanly; none of the new upstream commits touch `toolchain/mfc/viz`, and my two files came out byte-for-byte the same. The rebase rewrote the commit hashes (`1f6a6948`, `55765ec0`, `e589daa9`), so I updated them here and in my plan. Precheck and `test_viz.py` pass again on the rebased branch.
+
+**2026-11-06 (step 8: ship-gate, PR and a CI failure)**
+
+My first ship-gate run blocked: my own pr-precheck failed test-evidence, because I had cut my PR description down so far that the Verification section ended mid-sentence and no longer reported the check results. After I fixed the description the gate passed, and I opened PR #2170. Its first CI run then failed on all nine new tests with `RuntimeError: Unable to locate turbojpeg library`, the risk my plan had named: GitHub's runners don't have the native library, and the module's import guard catches `ImportError` and `OSError` but not the `RuntimeError` PyTurboJPEG raises, so `interactive.py` couldn't even be imported. The gate couldn't catch this because it runs on my machine, where I had installed the library. I fixed it test-first: a new test reloads `interactive.py` with `TurboJPEG()` raising `RuntimeError`; it failed with the same error as CI, then passed once `RuntimeError` was added to the guard. I also corrected the comment above the guard, which only mentioned `OSError`. I considered asking the maintainers first, but chose to make CI green and say what I changed, offering to move the fix to its own PR. After I pushed the fix, CI passed with all ten new tests running, and I posted a PR comment explaining the change.
+
+**2026-11-07 (PR monitor and playbook)**
+
+With PR #2170 open and no human review, I installed the PR monitor and wrote my playbook, setting thresholds from MFC's recent merged PRs instead of guessing. A full run drafted "wait, no nudge yet" because the PR is one day old and CI was still running; I sent nothing. The one thing I changed was the playbook's clock rule, so bot comments don't count as activity. Status stays Awaiting review.
 
 **Toolkit**
 
@@ -432,27 +444,22 @@ A throwaway script ran `master` and my branch on the same inputs and compared th
 
 ## Pull Request
 
-**PR Link:** [GitHub PR URL when opened]
+**PR Link:** https://github.com/MFlowCode/MFC/pull/2170
 
-**PR Description:** [what the PR says; much of the content above
-adapts into it]
+**PR Description:** Opened 2026-11-06 as "Dedupe repeated code in toolchain/mfc/viz/interactive.py". The description says `Fixes #1518`; that the three repeated pieces became `_log_transform`/`_LOG_FLOOR`, a `_Mesh3Key` NamedTuple and `_status_div`, with the module's first unit tests (`TestLogTransform`, `TestMesh3Key`, `TestStatusDiv`); under Verification, that I added unit tests, re-ran the existing test suite and compared the 2D and 3D viewer side by side with master; and under AI Usage, that I used Claude Code to summarize the codebase and draft the implementation plan.
 
 **Maintainer Feedback:**
 
-- [Date]: [feedback received, or "none yet"; silence is a normal
-  state and costs you nothing]
-- [Date]: [how you addressed it]
+- 2026-11-07: none yet. No maintainer has commented or reviewed; the only other comments are the repo's automated Claude review bot (its run failed without producing a review) and Codecov. My PR monitor drafted "wait, no nudge yet", so I sent no reply. By my playbook the first nudge is due after 7 quiet days, on 2026-11-13.
 
-**Status:** [Awaiting review / Iterating / Merged / Closed. The
-status is a fact you record, never a grade: the PR is graded as
-opened.]
+**Status:** Awaiting review
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: the ship-gate, run by hand with `check_gate.py` on my branch and again by its hook when I opened the PR through Claude Code. It runs my manifest's checks, then my pr-precheck on the branch, plan, evidence and description.
+- What it produced: The first run (2026-11-06, 00:24) blocked. Both manifest checks passed, but my pr-precheck failed test-evidence: "Description's Verification section ends mid-sentence ('so I also:'), and neither the precheck result nor the golden-suite timeout caveat is reported in the PR text." After I fixed the description it passed (00:44), and it passed again through the hook when I opened PR #2170, with all four pr-precheck checks (plan-fidelity, test-evidence, diff-quality, standards-comms) passing.
+- Difficulties: It only sees my machine. It passed while the PR's first CI run failed on all nine new tests, because CI's runners lack the native `libturbojpeg` I had installed locally. Its pr-precheck also takes test evidence partly from my local `test_evidence.md`, which maintainers never see, so a pass did not mean the description on GitHub carried the evidence.
+- What changed: I rewrote the Verification section until the gate passed, and fixed the CI failure in the PR with a tested one-line change to the import guard. I still need to update the PR description on GitHub so the check results are there, not only in my local file.
 
 ---
 
@@ -460,25 +467,33 @@ opened.]
 
 **Technical Skills Gained**
 
-[What you learned technically, named concretely.]
+- Test-driven development in practice: one `unittest` test at a time, run red for the expected reason, then the least code to pass it. I also learned to give a negative control (a deliberate, temporary bug) to any test that passes without failing first, like the any-field guard on `_Mesh3Key`, so I know it can fail.
+- Python details I used for the first time: a `typing.NamedTuple` as a dictionary key, and that `_replace` returns a new key instead of changing the original; returning a function from a helper (`_log_transform` hands back the log or identity transform); and `.4g` formatting.
+- Checking code that has no tests. The changed calls inside the Dash callback `_update` can't be unit tested, so I compared each rewritten call with the old one using Python's `ast` module, compared `master` and my branch on the same inputs by loading `master`'s file from git, and ran both viewers side by side from a temporary `git worktree`.
+- How MFC's toolchain fits together: `./mfc.sh precheck` mirrors the CI lint gate, `./mfc.sh test` runs the Fortran regression suite, and the Python venv lives in `build/venv`. Some failures come from native libraries the venv can't provide (`zstd`, `libturbojpeg0`).
 
 **Challenges Overcome**
 
-[What was hard and how you solved it; point at the real events, the
-Toolkit blocks above are full of them.]
+- My environment broke twice before I changed any code: the toolchain tests failed without `zstd`, and `interactive.py` would not import because `turbojpeg` raised a `RuntimeError` that the module's `except` doesn't catch. Neither is in the setup docs; I installed both packages as local workarounds and put the `turbojpeg` risk in my plan.
+- Reading the issue precisely. Step 3 went through three designs, and I committed the third: replacing only the two key tuples, then passing a plain tuple key, then a `_Mesh3Key` namedtuple built once in `_update`. The issue's "use it at all three sites" and "or a small namedtuple" were there from the start; I only caught them by rereading it. Each change went through `plan.md`, this story and the plan comment, and plan-check again.
+- Keeping AI-written work accurate. Several drafts had claims that weren't true, which I caught by checking against the code or my own memory: the status Div's child count, the number of `1e-300` literals, which code paths the status Divs were on, and sentences in this story that described things I never said. A script also emptied `plan.md` twice; the identical copy in this story is how I restored it.
+- Holding myself to my claim comment. I told the maintainer I would write the tests first. My first plan put them last, and my second wrote them all at once; I rolled both back and redid the plan as one-test-at-a-time cycles.
 
 **What I'd Do Differently Next Time**
 
-[Reflection on your process.]
+- Reread my own claim comment and the issue's exact wording before writing the plan, so the test-first promise and "all three sites" shape the first plan instead of the third.
+- Make every commit myself from the start, with one-line messages, instead of undoing commits made for me.
+- Push to my fork and check CI before opening the PR, as my plan said. The `turbojpeg` failure only showed up on GitHub's runners.
+- Take the regression baseline on the same commit my branch is based on, so a failure can be compared directly instead of across six upstream commits.
+- Ask about the Toolkit blocks early. I filled some with the wrong tool before a TA explained in Slack that they should describe the ship-gate, plan-check and the other course tools.
 
 ---
 
 ## Resources Used
 
-[What actually helped, not a reading list. List things this story
-already shows you using: the doc you followed to set the environment
-up, the thread that explained the bug, the person who answered you.
-One real entry beats ten plausible ones.]
-
-- [Link to documentation that helped]
-- [Discussion, issue, or post that helped]
+- MFC contributing guide, https://mflowcode.github.io/documentation/contributing.html: the lint gate's six checks (the basis of my ship-gate manifest), the `feature/<short-name>` branch naming and the PR rules.
+- The issue itself, https://github.com/MFlowCode/MFC/issues/1518: I went back to its exact wording ("use it at all three sites", "or a small namedtuple") more than once.
+- `docs/documentation/visualization.md` in the MFC repo: the `./mfc.sh viz --interactive` commands I used to run the viewer on the repo's test fixtures.
+- `.github/workflows/test.yml` and `toolchain/bootstrap/lint.sh`: how CI runs the lint gate and how the toolchain runs `pytest`, which I copied into my manifest.
+- MFC's recent merged pull requests from outside contributors, read with `gh api`: how long a maintainer's first response took, which set my playbook's 7-day threshold.
+- A course TA's answer in Slack about which tools belong in the Toolkit blocks.
